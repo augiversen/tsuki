@@ -9,4 +9,6 @@ Currently a private bot, but you can run your own copy with:
 
 -A Discord bot token (https://discord.com/developers)
 
-You'll either have to modify tsuki.py & input your token directly or create a vars.py file containing the line "token = 'yourtokenhere'".
+You'll either have to modify tsuki.py & input your token directly or create a vars.py file containing this code:
+
+`token = 'yourtokenhere'`
