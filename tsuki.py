@@ -17,9 +17,11 @@ for filename in os.listdir('./commands'):
 		bot.load_extension(f'commands.{filename[:-3]}')
 
 # Searches for existing database files, and creates them if none exist.
+'''
 if not os.path.exists('./db/kaguya.json'):
 	with open('./db/kaguya.json', 'w') as f:
 		json.dump({}, f)
+'''
 
 # Debug, confirms bot is running & commands have been loaded properly.
 @bot.event
