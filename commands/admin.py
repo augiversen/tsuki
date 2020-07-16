@@ -15,7 +15,11 @@ class admin(commands.Cog):
 	@commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
 	@commands.guild_only()
 	async def enable(self, ctx, extension):
-		self.bot.load_extension(f'commands.{extension}')
+		try:
+			self.bot.load_extension(f'commands.{extension}')
+			await ctx.send(f'Enabled {extension}.')
+		except:
+			await ctx.send('Extension already enabled.')
 
 	# Disables a specified command group.
 	@commands.command(brief = 'Disables commands.', description = 'Will disable specified command group.')
@@ -25,8 +29,11 @@ class admin(commands.Cog):
 		if extension == 'admin':
 			await ctx.send('You can\'t disable this command group.')
 		else:
-			self.bot.unload_extension(f'commands.{extension}')
-			await ctx.send('Disabled {}.'.format(extension))
+			try:
+				self.bot.unload_extension(f'commands.{extension}')
+				await ctx.send(f'Disabled {extension}.')
+			except:
+				await ctx.send('Extension already disabled.')
 
 	# Reloads all commands.
 	@commands.command(brief = 'Refreshes commands.', description = 'Will refresh specified command group. Will refresh all groups if no group specified (this will enable all groups).')
@@ -35,7 +42,7 @@ class admin(commands.Cog):
 	async def refresh(self, ctx, extension = None):
 		if extension:
 			self.bot.reload_extension(f'commands.{extension}')
-			await ctx.send('Refreshed {}.'.format(extension))
+			await ctx.send(f'Refreshed {extension}.')
 		else:
 			for filename in os.listdir('./commands'):
 				if filename.endswith('.py'):
@@ -46,7 +53,7 @@ class admin(commands.Cog):
 			await ctx.send('Refreshed bot.')
 
 	# Allows server to change command prefix.
-	@commands.command(brief = 'Changes command prefix.', description = 'Changes the prefix used for this bot\'s commands. Only accepts these characters: {}'.format(string.punctuation))
+	@commands.command(brief = 'Changes command prefix.', description = f'Changes the prefix used for this bot\'s commands. Only accepts these characters: {string.punctuation}')
 	@commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
 	@commands.guild_only()
 	async def prefix(self, ctx, arg):
@@ -54,11 +61,11 @@ class admin(commands.Cog):
 	    	self.bot.command_prefix = arg
 	    	# Due to interaction between Markdown and accepted command prefixes, there has to be a special case for "`". Change command or figure out cleaner way to implement?
 	    	if str(arg) == '`':
-	    		await ctx.send('New prefix is ' + '`` ' + str(arg) + ' ``')
+	    		await ctx.send(f'New prefix is `` {arg} ``')
 	    	else:
-	    		await ctx.send('New prefix is ' + '`' + str(arg) + '`')
+	    		await ctx.send(f'New prefix is `{arg}`')
 	    else: 
-	    	await ctx.send('Your prefix must be one of these characters: {}'.format(string.punctuation)) # This isn't syntactical (as it's not an error), not a major issue though.
+	    	await ctx.send(f'Your prefix must be one of these characters: {string.punctuation}') # This isn't syntactical (as it's not an error), not a major issue though.
 
 def setup(bot):
 	bot.add_cog(admin(bot))

@@ -18,7 +18,7 @@ class kaguya(commands.Cog):
 			db = json.load(f)
 			if db.get(user):
 				db[user] += 1
-				await ctx.send('You now have {} points.'.format(db[user]))
+				await ctx.send(f'You now have {db[user]} points.')
 			else:
 				db[user] = 1
 				await ctx.send('You now have 1 point.')

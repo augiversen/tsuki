@@ -27,20 +27,20 @@ class general(commands.Cog):
 			for command in self.bot.commands:
 				if arg == str(command):
 					embed = discord.Embed(colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
-					embed.add_field(name = '{}{}:'.format(self.bot.command_prefix, arg), value = '{}'.format(command.description))
+					embed.add_field(name = f'{self.bot.command_prefix}{arg}:', value = f'{command.description}')
 					await ctx.send(embed = embed)
 					check = 1
 			if not check:
-				await ctx.send('No command called {} found.'.format(arg))
+				await ctx.send(f'No command called {arg} found.')
 		else:
 			embed = discord.Embed(title = 'Commands:', colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
 			embed.set_thumbnail(url = 'https://cdn.discordapp.com/avatars/728460319365529620/01db9e0b7c4f45353bcbee591cff0196.png')
 			command_groups = {}
 			for command in self.bot.commands:
 				if command.cog_name not in command_groups:
-					command_groups[command.cog_name] = '{}: {}'.format(command.name, command.brief)
+					command_groups[command.cog_name] = f'{command.name}: {command.brief}'
 				else:
-					command_groups[command.cog_name] += '\n{}: {}'.format(command.name, command.brief)
+					command_groups[command.cog_name] += f'\n{command.name}: {command.brief}'
 			for group in command_groups:
 				embed.add_field(name = group, value = command_groups[group], inline = False)
 			await ctx.send(embed = embed)
@@ -51,7 +51,7 @@ class general(commands.Cog):
 	async def hello(self, ctx):
 	    if ctx.author == self.bot.user:
 	        return
-	    await ctx.send('Hello, ' + str(ctx.author) + '!')
+	    await ctx.send(f'Hello, {ctx.author}!')
 
 	# Returns a message with server and bot-relevant information about the users.
 	@commands.command(brief = 'Displays user info.', description = 'View your profile by default, or search for someone else\'s!')

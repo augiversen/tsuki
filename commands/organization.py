@@ -18,8 +18,8 @@ class organization(commands.Cog):
 				if db.get(user):
 					listPrint = ''
 					for item in db[user]:
-						listPrint += '\n✓ {}'.format(item) 
-					await ctx.send('**{}\'s checklist:**```{}```'.format(ctx.author.name, listPrint))
+						listPrint += f'\n✓ {item}'
+					await ctx.send(f'**{ctx.author.name}\'s checklist:**```{listPrint}```')
 				else:
 					await ctx.send('No items found in your list.')
 		else:

@@ -18,7 +18,7 @@ for filename in os.listdir('./commands'):
 # Debug, confirms bot is running & commands have been loaded properly.
 @bot.event
 async def on_ready():
-    print('Running {0.user}'.format(bot))
+    print(f'Running {bot.user}')
 
 ### General Error Handling
 
@@ -26,11 +26,13 @@ async def on_ready():
 async def on_command_error(ctx, error):
 
 	if isinstance(error, commands.MissingRequiredArgument):
-		await ctx.send('Missing required argument(s). Use {}help for more information on your command.'.format(bot.command_prefix))
+		await ctx.send(f'Missing required argument(s). Use {bot.command_prefix}help for more information on your command.')
 	elif isinstance(error, commands.CommandNotFound):
 		await ctx.send('Command not found.')
 	elif isinstance(error, commands.NoPrivateMessage):
 		await ctx.send('This command is disabled in DMs.')
+	elif isinstance(error, commands.CheckAnyFailure):
+		await ctx.send(f'I\'m afraid I can\'t let you do that, {ctx.author.name}.')
 	else:
 		print(error)
 		await ctx.send('Something went wrong on our end.') 
