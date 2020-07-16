@@ -1,16 +1,26 @@
 import discord
 from discord.ext import commands
+import json
 
 # This command group contains all basic information & function commands.
 
 # Sets unique default colors for users based on their discriminator (the 4-digit code after a username).
 def userColour(member):
-	rgb_modulo = [255, 158, int(member.discriminator)%256]
-	disc0 = int(member.discriminator[0])
-	rgb_ordered = [rgb_modulo[disc0 % 3], rgb_modulo[(disc0 + 1) % 3], rgb_modulo[(disc0 + 2) % 3]]
-	if int(member.discriminator[3]) % 2 == 0: 
-		rgb_ordered.reverse()
-	return rgb_ordered
+	user = str(member.id)
+	with open('./db/colour.json', 'r+') as f:
+		db = json.load(f)
+		if not db.get(user):
+			rgb_modulo = [255, 158, int(member.discriminator)%256]
+			disc0 = int(member.discriminator[0])
+			rgb_ordered = [rgb_modulo[disc0 % 3], rgb_modulo[(disc0 + 1) % 3], rgb_modulo[(disc0 + 2) % 3]]
+			if int(member.discriminator[3]) % 2 == 0: 
+				rgb_ordered.reverse()
+			db[user] = rgb_ordered
+		colour = db[user]
+		f.seek(0)
+		json.dump(db, f, indent = 4)
+		f.truncate()
+	return colour
 
 class general(commands.Cog):
 
@@ -23,15 +33,12 @@ class general(commands.Cog):
 	async def help(self, ctx, arg: str = None):
 		rgb = userColour(ctx.author)
 		if arg:
-			check = None
 			for command in self.bot.commands:
 				if arg == str(command):
 					embed = discord.Embed(colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
 					embed.add_field(name = f'{self.bot.command_prefix}{arg}:', value = f'{command.description}')
-					await ctx.send(embed = embed)
-					check = 1
-			if not check:
-				await ctx.send(f'No command called {arg} found.')
+					return await ctx.send(embed = embed)
+			await ctx.send(f'No command called {arg} found.')
 		else:
 			embed = discord.Embed(title = 'Commands:', colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
 			embed.set_thumbnail(url = 'https://cdn.discordapp.com/avatars/728460319365529620/01db9e0b7c4f45353bcbee591cff0196.png')
@@ -60,10 +67,51 @@ class general(commands.Cog):
 		member = ctx.author if not member else member
 		rgb = userColour(member)
 		embed = discord.Embed(title = member.display_name, colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
+		roles = ''
+		role_count = 0
+		for role in member.roles[1:]:
+			roles += f'{role.name}, '
+			role_count += 1
+		roles = roles [:-2]
+		embed.add_field(name = 'Status:', value = member.status, inline = False)
 		embed.add_field(name = 'Joined Discord:', value = member.created_at.strftime('%#d %B %Y (%a), \n%H:%M %p UTC'))
 		embed.add_field(name = 'Joined server:', value = member.joined_at.strftime('%#d %B %Y (%a), \n%H:%M %p UTC'))
+		embed.add_field(name = f'Roles: {role_count}', value = roles, inline = False)
 		embed.set_thumbnail(url = member.avatar_url)
 		await ctx.send(embed = embed)
+
+	# User can set a custom colour for relevant commands. Currently only takes RGB input, but will eventually take hex & text input. Also really need to clean up this code.
+	@commands.command(brief = 'Set your custom colour.', description = 'Set your personal colour for commands like ~info and ~help! Takes RGB input or "default".')
+	@commands.guild_only()
+	async def colour(self, ctx, *args):
+		colour = []
+		user = str(ctx.author.id)
+		if args[0] == "default":
+			with open('./db/colour.json', 'r+') as f:
+				db = json.load(f)
+				db[user] = None
+				f.seek(0)
+				json.dump(db, f, indent = 4)
+				f.truncate()
+			userColour(ctx.author)
+			return await ctx.send('Colour reset.')
+		if len(args) == 3:
+			for arg in args:
+				try:
+					if int(arg) < 256 and int(arg) > -1:
+						colour.append(int(arg))
+					else:
+						return await ctx.send('Colour not valid. Make sure all values are in the range [0, 255].')
+				except:
+					return await ctx.send('Colour not valid. Make sure all values are integers in the range [0, 255].')
+			with open('./db/colour.json', 'r+') as f:
+				db = json.load(f)
+				db[user] = colour
+				f.seek(0)
+				json.dump(db, f, indent = 4)
+				f.truncate()
+			return await ctx.send(f'Colour set to {colour}.')
+		await ctx.send('Colour not valid. Make sure there are three RGB values.')
 
 def setup(bot):
 	bot.add_cog(general(bot))

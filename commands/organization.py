@@ -7,8 +7,8 @@ class organization(commands.Cog):
 	def __init__(self, bot):
 		self.bot = bot
 
-	# As with kaguya, will be rewriting for an SQL database. Currently just proof-of-concept for private use.
-	@commands.command(brief = 'A to-do list.', description = 'Displays personal to-do list or, with argument, adds items to list.')
+	# As with kaguya, will be rewriting for an SQL database. Currently just proof-of-concept for private use. To do: Allow for images/videos to be added (pull URL).
+	@commands.command(brief = 'A to-do list.', description = 'Displays personal checklist or adds item with argument. You can also react :flag_cz: to a standalone message to call this command.')
 	@commands.guild_only()
 	async def list(self, ctx, *, arg: str = None):
 		user = str(ctx.author.id)
