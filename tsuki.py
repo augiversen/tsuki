@@ -3,25 +3,17 @@
 import discord
 from discord.ext import commands
 import os
-import json
-from vars import token
+import json # replace with SQL before public launch
+from vars import token # maybe figure out a different way to do this
 import sys
-import traceback
 
-bot = commands.Bot(command_prefix = '~', no_pm = True)
+bot = commands.Bot(command_prefix = '~', no_pm = True, help_command = None)
 os.chdir(sys.path[0])
 
-# Loads all commands and sets help command to 'general' category.
+# Loads all commands.
 for filename in os.listdir('./commands'):
 	if filename.endswith('.py'):
 		bot.load_extension(f'commands.{filename[:-3]}')
-
-# Searches for existing database files, and creates them if none exist.
-'''
-if not os.path.exists('./db/kaguya.json'):
-	with open('./db/kaguya.json', 'w') as f:
-		json.dump({}, f)
-'''
 
 # Debug, confirms bot is running & commands have been loaded properly.
 @bot.event
