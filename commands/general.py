@@ -113,5 +113,18 @@ class general(commands.Cog):
 			return await ctx.send(f'Colour set to {colour}.')
 		await ctx.send('Colour not valid. Make sure there are three RGB values.')
 
+	# Poll command. 
+	@commands.command(brief = 'Creates a poll.', description = 'Creates a poll. Format: ~poll "question" [number of choices].')
+	@commands.guild_only()
+	async def poll(self, ctx, question: str, choices: int):
+		numbers = ["1⃣", "2⃣", "3⃣", "4⃣", "5⃣", "6⃣", "7⃣", "8⃣", "9⃣"]
+		if choices > 0 and choices < 10:
+			message = await ctx.send(f'{question}')
+			for i in range(choices):
+				print(numbers[i])
+				await message.add_reaction(numbers[i])
+		else:
+			await ctx.send('Poll can have 1-9 choices.')
+
 def setup(bot):
 	bot.add_cog(general(bot))
