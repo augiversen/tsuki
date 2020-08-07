@@ -1,46 +1,45 @@
-import discord
-from discord.ext import commands
-import json
+from tsuki import *
 
 # This command group contains all basic information & function commands.
 
-# Sets unique default colors for users based on their discriminator (the 4-digit code after a username).
-def userColour(member):
-	user = str(member.id)
-	with open('./db/colour.json', 'r+') as f:
-		db = json.load(f)
-		if not db.get(user):
-			rgb_modulo = [255, 158, int(member.discriminator)%256]
-			disc0 = int(member.discriminator[0])
-			rgb_ordered = [rgb_modulo[disc0 % 3], rgb_modulo[(disc0 + 1) % 3], rgb_modulo[(disc0 + 2) % 3]]
-			if int(member.discriminator[3]) % 2 == 0: 
-				rgb_ordered.reverse()
-			db[user] = rgb_ordered
-		colour = db[user]
-		f.seek(0)
-		json.dump(db, f, indent = 4)
-		f.truncate()
-	return colour
+# Sets unique default colours for users based on their discriminator (the 4-digit code after a username). Called by functions that use these colours.
+def userColour(user):
+	c.execute('''SELECT COLOUR FROM USER WHERE USER_ID = %s''', (user.id,))
+	query = c.fetchone()
+	rgb_modulo = [255, 158, int(user.discriminator)%256]
+	disc0 = int(user.discriminator[0])
+	rgb_ordered = [rgb_modulo[disc0 % 3], rgb_modulo[(disc0 + 1) % 3], rgb_modulo[(disc0 + 2) % 3]]
+	if int(user.discriminator[3]) % 2 == 0: 
+		rgb_ordered.reverse()
+	colour = '%02x%02x%02x' % (rgb_ordered[0], rgb_ordered[1], rgb_ordered[2])  
+	# A bit clunky. Functions this way because ~colour default sets COLOUR to "NULL". Fix?
+	if not query:
+		c.execute('''INSERT INTO USER (USER_ID, COLOUR) VALUES (%s, %s)''', (user.id, colour,))
+	elif not query[0]:
+		c.execute('''UPDATE USER SET COLOUR = %s WHERE USER_ID = %s''', (colour, user.id,))
+	mydb.commit()
 
 class general(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
 
-	# Custom help command. Code here is currently a bit hacky, would like to optimize soon.
+	# Custom help command. Code a bit messy (especially the colour call, find way to optimize?)
 	@commands.command(brief = 'This command.', description = 'Return a list of all commands or a specific command.')
 	@commands.guild_only()
 	async def help(self, ctx, arg: str = None):
-		rgb = userColour(ctx.author)
+		userColour(ctx.author)
+		c.execute('''SELECT COLOUR FROM USER WHERE USER_ID = %s''', (ctx.author.id,))
+		colour = c.fetchone()
 		if arg:
 			for command in self.bot.commands:
 				if arg == str(command):
-					embed = discord.Embed(colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
-					embed.add_field(name = f'{self.bot.command_prefix}{arg}:', value = f'{command.description}')
+					embed = discord.Embed(colour = discord.Colour(int(f'{colour[0]}', 16)))
+					embed.add_field(name = f'{prefix(self.bot, ctx.message)}{arg}:', value = f'{command.description}')
 					return await ctx.send(embed = embed)
 			await ctx.send(f'No command called {arg} found.')
 		else:
-			embed = discord.Embed(title = 'Commands:', colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
+			embed = discord.Embed(title = 'Commands:', colour = discord.Colour(int(f'{colour[0]}', 16)))
 			embed.set_thumbnail(url = 'https://cdn.discordapp.com/avatars/728460319365529620/01db9e0b7c4f45353bcbee591cff0196.png')
 			command_groups = {}
 			for command in self.bot.commands:
@@ -65,8 +64,10 @@ class general(commands.Cog):
 	@commands.guild_only()
 	async def info(self, ctx, member: discord.Member = None):
 		member = ctx.author if not member else member
-		rgb = userColour(member)
-		embed = discord.Embed(title = member.display_name, colour = discord.Colour.from_rgb(rgb[0], rgb[1], rgb[2]))
+		userColour(ctx.author)
+		c.execute('''SELECT COLOUR FROM USER WHERE USER_ID = %s''', (ctx.author.id,))
+		colour = c.fetchone()
+		embed = discord.Embed(title = member.display_name, colour = discord.Colour(int(f'{colour[0]}', 16)))
 		roles = ''
 		role_count = 0
 		for role in member.roles[1:]:
@@ -80,51 +81,43 @@ class general(commands.Cog):
 		embed.set_thumbnail(url = member.avatar_url)
 		await ctx.send(embed = embed)
 
-	# User can set a custom colour for relevant commands. Currently only takes RGB input, but will eventually take hex & text input. Also really need to clean up this code.
-	@commands.command(brief = 'Set your custom colour.', description = 'Set your personal colour for commands like ~info and ~help! Takes RGB input or "default".')
+	# User can set a custom colour for relevant commands. Currently only takes 6-char hex input (does not accept # in front). To do: add RGB, text input, error checking.
+	@commands.command(brief = 'Set your custom colour.', description = 'Set your personal colour for commands like ~info and ~help! Takes hex input or "default".')
 	@commands.guild_only()
-	async def colour(self, ctx, *args):
-		colour = []
-		user = str(ctx.author.id)
-		if args[0] == "default":
-			with open('./db/colour.json', 'r+') as f:
-				db = json.load(f)
-				db[user] = None
-				f.seek(0)
-				json.dump(db, f, indent = 4)
-				f.truncate()
-			userColour(ctx.author)
+	async def colour(self, ctx, arg):
+		if arg == "default":
+			c.execute('''UPDATE USER SET COLOUR = null WHERE USER_ID = %s''', (ctx.author.id, ))
+			mydb.commit()
 			return await ctx.send('Colour reset.')
-		if len(args) == 3:
-			for arg in args:
-				try:
-					if int(arg) < 256 and int(arg) > -1:
-						colour.append(int(arg))
-					else:
-						return await ctx.send('Colour not valid. Make sure all values are in the range [0, 255].')
-				except:
-					return await ctx.send('Colour not valid. Make sure all values are integers in the range [0, 255].')
-			with open('./db/colour.json', 'r+') as f:
-				db = json.load(f)
-				db[user] = colour
-				f.seek(0)
-				json.dump(db, f, indent = 4)
-				f.truncate()
-			return await ctx.send(f'Colour set to {colour}.')
-		await ctx.send('Colour not valid. Make sure there are three RGB values.')
+		elif len(arg) == 6:
+			try:
+				int(arg, 16)
+				c.execute('''UPDATE USER SET COLOUR = %s WHERE USER_ID = %s''', (arg, ctx.author.id, ))
+				mydb.commit()
+				return await ctx.send(f'Colour set to {arg}.')
+			except:
+				return await ctx.send('Invalid hex code. Make sure your input is 6 hexadecimal digits.')
+		return await ctx.send('Invalid hex code. Make sure your input is 6 hexadecimal digits.')
 
 	# Poll command. 
-	@commands.command(brief = 'Creates a poll.', description = 'Creates a poll. Format: ~poll "question" [number of choices].')
+	@commands.command(brief = 'Creates a poll.', description = 'Creates a poll. Format: ~poll "question" [# of choices, defaults to 2].')
 	@commands.guild_only()
-	async def poll(self, ctx, question: str, choices: int):
-		numbers = ["1⃣", "2⃣", "3⃣", "4⃣", "5⃣", "6⃣", "7⃣", "8⃣", "9⃣"]
-		if choices > 0 and choices < 10:
-			message = await ctx.send(f'{question}')
+	async def poll(self, ctx, question: str, choices: int = 2):
+		nums = ["1⃣", "2⃣", "3⃣", "4⃣", "5⃣", "6⃣", "7⃣", "8⃣", "9⃣"]
+		if choices == 2:
+			message = await ctx.send(f'> **Poll:** {question}')
+			await message.add_reaction("👍")
+			await message.add_reaction("👎")
+			await message.add_reaction("🤷")
+		elif choices > 1 and choices < 10:
+			message = await ctx.send(f'> **Poll:** {question}')
 			for i in range(choices):
-				print(numbers[i])
-				await message.add_reaction(numbers[i])
+				await message.add_reaction(nums[i])
 		else:
-			await ctx.send('Poll can have 1-9 choices.')
+			await ctx.send('Poll can have 2-9 choices.')
+		await ctx.message.delete()
+
+
 
 def setup(bot):
 	bot.add_cog(general(bot))

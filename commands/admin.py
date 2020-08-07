@@ -1,7 +1,4 @@
-import discord
-from discord.ext import commands
-import os
-import string
+from tsuki import *
 
 # This command group contains all administrative functions. These can only be used by server administrators or the bot owner.
 
@@ -9,10 +6,10 @@ class admin(commands.Cog):
 
 	def __init__(self, bot):
 		self.bot = bot
-
+	
 	# Enables a specified command group.
 	@commands.command(brief = 'Enables commands.', description = 'Will enable specified command group.')
-	@commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+	@commands.is_owner()
 	@commands.guild_only()
 	async def enable(self, ctx, extension):
 		try:
@@ -23,7 +20,7 @@ class admin(commands.Cog):
 
 	# Disables a specified command group.
 	@commands.command(brief = 'Disables commands.', description = 'Will disable specified command group.')
-	@commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+	@commands.is_owner()
 	@commands.guild_only()
 	async def disable(self, ctx, extension):
 		if extension == 'admin':
@@ -37,7 +34,7 @@ class admin(commands.Cog):
 
 	# Reloads all commands.
 	@commands.command(brief = 'Refreshes commands.', description = 'Will refresh specified command group. Will refresh all groups if no group specified (this will enable all groups).')
-	@commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
+	@commands.is_owner()
 	@commands.guild_only()
 	async def refresh(self, ctx, extension = None):
 		if extension:
@@ -53,12 +50,13 @@ class admin(commands.Cog):
 			await ctx.send('Refreshed bot.')
 
 	# Allows server to change command prefix.
-	@commands.command(brief = 'Changes command prefix.', description = f'Changes the prefix used for this bot\'s commands. Only accepts these characters: {string.punctuation}')
+	@commands.command(brief = 'Changes command prefix.', description = 'Changes the prefix used for this bot\'s commands. Only accepts these characters: !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~')
 	@commands.check_any(commands.has_permissions(administrator = True), commands.is_owner())
 	@commands.guild_only()
 	async def prefix(self, ctx, arg):
-	    if arg in string.punctuation and len(arg) < 2:
-	    	self.bot.command_prefix = arg
+	    if arg in '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~' and len(arg) < 2:
+	    	c.execute('''UPDATE SERVER SET PREFIX = %s WHERE SERVER_ID = %s''', (arg, ctx.guild.id,))
+	    	mydb.commit()
 	    	# Due to interaction between Markdown and accepted command prefixes, there has to be a special case for "`". Change command or figure out cleaner way to implement?
 	    	if str(arg) == '`':
 	    		await ctx.send(f'New prefix is `` {arg} ``')

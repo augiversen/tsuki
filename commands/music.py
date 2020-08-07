@@ -1,5 +1,4 @@
-import discord
-from discord.ext import commands
+from tsuki import *
 
 # This command group contains all commands related to music playback.
 class music(commands.Cog):
